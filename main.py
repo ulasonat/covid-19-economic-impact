@@ -3,9 +3,11 @@ import requests
 import gzip
 import re
 
-regex = re.compile(
-    "(youtu\.be/|youtube\.com/(watch\?(.*\&)?v=|(embed|v)/))([^?&\"'>]+)"
-)
+
+covid_terms = 'covid|covid-19|corona|coronavirus|pandemic|epidemic'
+economic_terms = 'economic|economical|unemployment|recession'
+
+regex = re.compile(f"({covid_terms}).*({economic_terms})", re.IGNORECASE)
 
 url = 'https://data.commoncrawl.org/crawl-data/CC-MAIN-2020-45/warc.paths.gz'
 response = requests.get(url)
@@ -48,21 +50,17 @@ for url in urls:
                 matched_counter += 1
                 hits += 1
                 m = regex.search(contents, m.end())
+                print(contents)
 
             while m:
                 m = regex.search(contents, m.end())
                 hits += 1
 
-            print(contents)
-
-            if matched_counter == 1:
-                quit()
-
-            print(
-                "Python: "
-                + str(hits)
-                + " matches in "
-                + str(matched_counter)
-                + "/"
-                + str(total_counter)
-            )
+        print(
+            "Python: "
+            + str(hits)
+            + " matches in "
+            + str(matched_counter)
+            + "/"
+            + str(total_counter)
+        )
