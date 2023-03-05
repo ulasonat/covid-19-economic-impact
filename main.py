@@ -34,7 +34,15 @@ def get_urls():
 
     return urls
 
+def write_results_to_file(match):
+    with open('results.txt', 'w') as results_file:
+        for website in match:
+            results_file.write(website + '\n')
+    print('Results written to file.')
+
 def main():
+
+    matched_urls = list()
 
     covid_terms = 'covid|covid-19|corona|coronavirus|pandemic|epidemic|virus|mask'
     economic_terms = 'economic|economical|unemployment|recession|poor|purchase|buy'
@@ -83,10 +91,15 @@ def main():
                     for match in matches:
                         if regex.search(match):
                             matched_counter += 1
+                            matched_urls.append(match)
                             print(match)
+                            print('Progress: ' + str(matched_counter) + ' / ' + str(total_counter))
 
+                            if matched_counter >= 1000:
+                                write_results_to_file(match)
+                                quit()
 
-                print('Progress: ' + str(matched_counter) + ' / ' + str(total_counter))
+                            break  # I break not to have similar files in the end result, although we would reach to 1000 quicker
 
 if __name__ == '__main__':
     main()
