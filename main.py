@@ -9,70 +9,74 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-covid_terms = 'covid|covid-19|corona|coronavirus|pandemic|epidemic|virus|mask'
-economic_terms = 'economic|economical|unemployment|recession|poor|purchase|buy'
+def set_up_session():
+    session = requests.Session()
+    retries = Retry(total=2, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+    session.mount('http://', HTTPAdapter(max_retries=retries))
+    session.mount('https://', HTTPAdapter(max_retries=retries))
+    return session
 
-regex = re.compile(f"({covid_terms}).*({economic_terms})", re.IGNORECASE)
+def get_urls():
+    url = 'https://data.commoncrawl.org/crawl-data/CC-MAIN-2020-29/warc.paths.gz'
+    response = requests.get(url)
 
-url = 'https://data.commoncrawl.org/crawl-data/CC-MAIN-2020-29/warc.paths.gz'
-response = requests.get(url)
+    lines = gzip.decompress(response.content).decode('utf-8').split('\n')
+    urls = [line.strip() for line in lines if line.strip()]
 
-lines = gzip.decompress(response.content).decode('utf-8').split('\n')
-urls = [line.strip() for line in lines if line.strip()]
+    return urls
 
-total_counter = 0
-matched_counter = 0
-hits = 0
+def main():
 
-session = requests.Session()
-retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
-session.mount('http://', HTTPAdapter(max_retries=retries))
-session.mount('https://', HTTPAdapter(max_retries=retries))
+    covid_terms = 'covid|covid-19|corona|coronavirus|pandemic|epidemic|virus|mask'
+    economic_terms = 'economic|economical|unemployment|recession|poor|purchase|buy'
 
-for url in urls:
-    if url.endswith('.warc.gz'):
-        final_url = 'https://data.commoncrawl.org/' + url
+    regex = re.compile(f"({covid_terms}).*({economic_terms})", re.IGNORECASE)
 
-        stream = None
-        if final_url.startswith("http://") or final_url.startswith("https://"):
-            stream = session.get(final_url, stream=True).raw
-        else:
-            stream = open(final_url, "rb")
+    urls = get_urls()
+    session = set_up_session()
 
-        for record in ArchiveIterator(stream):
-            if record.rec_type == "warcinfo":
-                continue
+    total_counter = 0
+    matched_counter = 0
 
-            if not ".com/" in record.rec_headers.get_header(
-                    "WARC-Target-URI"
-            ):
-                continue
+    for url in urls:
+        if url.endswith('.warc.gz'):
+            final_url = 'https://data.commoncrawl.org/' + url
 
-            total_counter += 1
-            contents = (
-                record.content_stream()
-                .read()
-                .decode("utf-8", "replace")
-            )
+            if final_url.startswith("http://") or final_url.startswith("https://"):
+                stream = session.get(final_url, stream=True).raw
+            else:
+                stream = open(final_url, "rb")
 
+            for record in ArchiveIterator(stream):
+                if record.rec_type == "warcinfo":
+                    continue
 
-            if regex.search(contents):
-                url_pattern = re.compile(
-                    r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+                if not ".com/" in record.rec_headers.get_header(
+                        "WARC-Target-URI"
+                ):
+                    continue
 
-                matches = re.findall(url_pattern, contents)
-
-                for match in matches:
-                    if regex.search(match):
-                        print(match)
-                        break
+                total_counter += 1
+                contents = (
+                    record.content_stream()
+                    .read()
+                    .decode("utf-8", "replace")
+                )
 
 
-        print(
-            "Python: "
-            + str(hits)
-            + " matches in "
-            + str(matched_counter)
-            + "/"
-            + str(total_counter)
-        )
+                if regex.search(contents):
+                    url_pattern = re.compile(
+                        r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+
+                    matches = re.findall(url_pattern, contents)
+
+                    for match in matches:
+                        if regex.search(match):
+                            matched_counter += 1
+                            print(match)
+
+
+                print('Progress: ' + str(matched_counter) + ' / ' + str(total_counter))
+
+if __name__ == '__main__':
+    main()
