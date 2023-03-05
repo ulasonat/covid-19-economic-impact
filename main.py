@@ -94,7 +94,7 @@ def main():
                             print(match)
                             print('Progress: ' + str(matched_counter) + ' / ' + str(total_counter))
 
-                            if matched_counter >= 3:
+                            if matched_counter >= 1000:
                                 write_results_to_file(matched_urls)
                                 quit()
 
