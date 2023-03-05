@@ -89,17 +89,16 @@ def main():
                     matches = re.findall(url_pattern, contents)
 
                     for match in matches:
-                        if regex.search(match):
+                        if regex.search(match) and match.endswith('/'):  # making an assumption here, explained in README.md
                             matched_counter += 1
                             matched_urls.append(match)
                             print(match)
                             print('Progress: ' + str(matched_counter) + ' / ' + str(total_counter))
 
-                            if matched_counter >= 1000:
+                            if matched_counter >= 10:
                                 write_results_to_file(match)
                                 quit()
 
-                            break  # I break not to have similar files in the end result, although we would reach to 1000 quicker
 
 if __name__ == '__main__':
     main()
