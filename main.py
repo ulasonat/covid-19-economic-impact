@@ -1,6 +1,3 @@
-import time
-
-from warcio.archiveiterator import ArchiveIterator
 import requests
 import gzip
 import re
@@ -8,6 +5,7 @@ from collections import Counter
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from warcio.archiveiterator import ArchiveIterator
 
 def set_up_session():
     session = requests.Session()
@@ -89,14 +87,15 @@ def main():
                     matches = re.findall(url_pattern, contents)
 
                     for match in matches:
-                        if regex.search(match) and match.endswith('/'):  # making an assumption here, explained in README.md
+                        # making an assumption in the next line, explained in README.md
+                        if regex.search(match) and match.endswith('/') and match not in matched_urls:
                             matched_counter += 1
                             matched_urls.append(match)
                             print(match)
                             print('Progress: ' + str(matched_counter) + ' / ' + str(total_counter))
 
-                            if matched_counter >= 10:
-                                write_results_to_file(match)
+                            if matched_counter >= 3:
+                                write_results_to_file(matched_urls)
                                 quit()
 
 
